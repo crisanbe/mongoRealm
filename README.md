@@ -1,7 +1,5 @@
-# Full Guide on MongoDB Realm as a Local Database on Android (Koltin SDK) - Video Tutorial
+#  Realm as a Local Database on Android (Koltin SDK)
 
-<p align="center">
-  <a href="https://youtu.be/7ukzzjtUCJA" align="center">Video Tutorial (YouTube)</a>
-</p>
 
-![alt text](https://i.postimg.cc/RZs2LsjT/Mongo-DB-Realm.png)
+
+![alt text](https://www.mongodb.com/community/forums/uploads/default/original/3X/c/3/c32fb91d8453a2a363267d772e74592a19df4b9f.png)
