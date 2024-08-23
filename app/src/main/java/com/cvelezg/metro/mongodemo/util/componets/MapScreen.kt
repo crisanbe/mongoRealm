@@ -126,7 +126,3 @@ fun MapScreen(
         }
     }
 }
-
-private fun isValidLocation(location: LocationData): Boolean {
-    return location.latitude in -90.0..90.0 && location.longitude in -180.0..180.0
-}

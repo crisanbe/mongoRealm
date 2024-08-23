@@ -1,3 +1,4 @@
+// MainActivity.kt
 package com.cvelezg.metro.mongodemo
 
 import android.Manifest
@@ -19,8 +20,8 @@ import com.cvelezg.metro.mongodemo.navigation.Screen
 import com.cvelezg.metro.mongodemo.navigation.SetupNavGraph
 import com.cvelezg.metro.mongodemo.ui.theme.MongoDemoTheme
 import com.cvelezg.metro.mongodemo.util.Constants.APP_ID
-import com.cvelezg.metro.mongodemo.util.calculateDistance
 import com.cvelezg.metro.mongodemo.screen.location.LocationViewModel
+import com.cvelezg.metro.mongodemo.util.calculateDistance
 import com.mapbox.common.MapboxOptions
 import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
@@ -43,7 +44,7 @@ class MainActivity : ComponentActivity() {
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
             startLocationUpdates()
         } else {
-            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Location permissions are required", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -110,26 +111,17 @@ class MainActivity : ComponentActivity() {
                 val newLocationData = LocationData().apply {
                     latitude = location.latitude
                     longitude = location.longitude
-                    timestamp = RealmInstant.now()
-                    _id = ObjectId()
                     owner_id = App.create(APP_ID).currentUser?.id ?: ""
+                    timestamp = RealmInstant.now()
                 }
 
-                if (lastSavedLocation == null) {
-                    // Guardar la ubicación inicial
-                    lastSavedLocation = newLocationData
-                    locationViewModel.updateLocation(newLocationData)
-                } else {
-                    val distance = calculateDistance(
+                if (lastSavedLocation == null || calculateDistance(
                         lastSavedLocation!!.latitude, lastSavedLocation!!.longitude,
                         newLocationData.latitude, newLocationData.longitude
-                    )
-
-                    if (distance >= minDistance) {
-                        // Guardar la nueva ubicación si la distancia es mayor o igual al mínimo
-                        lastSavedLocation = newLocationData
-                        locationViewModel.updateLocation(newLocationData)
-                    }
+                    ) > minDistance) {
+                    lastSavedLocation = newLocationData
+                    locationViewModel.updateLocation(newLocationData)
+                    Toast.makeText(this@MainActivity, "Location updated: ${newLocationData.latitude}, ${newLocationData.longitude}", Toast.LENGTH_SHORT).show()
                 }
             }
 
