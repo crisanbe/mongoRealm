@@ -1,6 +1,7 @@
 package com.cvelezg.metro.mongodemo.navigation
 
 sealed class Screen(val route: String) {
-    object Authentication : Screen(route = "authentication_screen")
-    object Home : Screen(route = "home_screen")
+    object Home : Screen("home_screen")
+    object Authentication : Screen("authentication_screen")
+    object Map : Screen("map_screen")
 }

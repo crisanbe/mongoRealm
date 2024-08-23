@@ -1,3 +1,4 @@
+// HomeViewModel.kt
 package com.cvelezg.metro.mongodemo.screen.home
 
 import androidx.compose.runtime.mutableStateOf
@@ -5,9 +6,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cvelezg.metro.mongodemo.data.MongoDB
 import com.cvelezg.metro.mongodemo.model.Person
+import com.cvelezg.metro.mongodemo.util.Constants.APP_ID
+import io.realm.kotlin.mongodb.App
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.mongodb.kbson.ObjectId
 
 class HomeViewModel : ViewModel() {
@@ -73,6 +76,22 @@ class HomeViewModel : ViewModel() {
                 MongoDB.filterData(name = name.value).collect {
                     filtered.value = true
                     data.value = it
+                }
+            }
+        }
+    }
+
+    fun logout(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val user = App.create(APP_ID).currentUser
+                user?.logOut()
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onError(e)
                 }
             }
         }

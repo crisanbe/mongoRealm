@@ -1,7 +1,9 @@
+// MongoDB.kt
 package com.cvelezg.metro.mongodemo.data
 
 import android.util.Log
 import com.cvelezg.metro.mongodemo.model.Address
+import com.cvelezg.metro.mongodemo.model.LocationData
 import com.cvelezg.metro.mongodemo.model.Person
 import com.cvelezg.metro.mongodemo.model.Pet
 import com.cvelezg.metro.mongodemo.util.Constants.APP_ID
@@ -27,10 +29,11 @@ object MongoDB : MongoRepository {
         if (user != null) {
             val config = SyncConfiguration.Builder(
                 user,
-                setOf(Person::class, Address::class, Pet::class)
+                setOf(Person::class, Address::class, Pet::class, LocationData::class)
             )
                 .initialSubscriptions { sub ->
                     add(query = sub.query<Person>(query = "owner_id == $0", user.id))
+                    add(query = sub.query<LocationData>(query = "owner_id == $0", user.id)) // Add LocationData to subscriptions
                 }
                 .log(LogLevel.ALL)
                 .build()
@@ -82,6 +85,23 @@ object MongoDB : MongoRepository {
                 person?.let { delete(it) }
             } catch (e: Exception) {
                 Log.d("MongoRepository", "${e.message}")
+            }
+        }
+    }
+
+    // New methods for LocationData
+    override suspend fun getLocationData(): Flow<List<LocationData>> {
+        return realm.query<LocationData>().asFlow().map { it.list }
+    }
+
+    override suspend fun insertLocation(locationData: LocationData) {
+        if (user != null) {
+            realm.write {
+                try {
+                    copyToRealm(locationData)
+                } catch (e: Exception) {
+                    Log.d("MongoRepository", e.message.toString())
+                }
             }
         }
     }

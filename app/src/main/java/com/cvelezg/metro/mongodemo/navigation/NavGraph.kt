@@ -3,6 +3,7 @@ package com.cvelezg.metro.mongodemo.navigation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -12,6 +13,7 @@ import com.cvelezg.metro.mongodemo.screen.auth.AuthenticationScreen
 import com.cvelezg.metro.mongodemo.screen.auth.AuthenticationViewModel
 import com.cvelezg.metro.mongodemo.screen.home.HomeScreen
 import com.cvelezg.metro.mongodemo.screen.home.HomeViewModel
+import com.cvelezg.metro.mongodemo.util.componets.MapScreen
 import com.stevdzasan.messagebar.rememberMessageBarState
 import com.stevdzasan.onetap.rememberOneTapSignInState
 
@@ -30,7 +32,23 @@ fun SetupNavGraph(
                 navController.navigate(Screen.Home.route)
             }
         )
-        homeRoute()
+        homeRoute(
+            navigateToAuth = {
+                navController.navigate(Screen.Authentication.route) {
+                    popUpTo(Screen.Home.route) { inclusive = true }
+                }
+            },
+            navigateToMap = {
+                navController.navigate(Screen.Map.route) // Add this navigation
+            }
+        )
+        mapRoute()
+    }
+}
+
+fun NavGraphBuilder.mapRoute() {
+    composable(route = Screen.Map.route) {
+        MapScreen(context = LocalContext.current)
     }
 }
 
@@ -106,10 +124,12 @@ fun NavGraphBuilder.authRoute(
     }
 }
 
-fun NavGraphBuilder.homeRoute() {
+fun NavGraphBuilder.homeRoute(
+    navigateToAuth: () -> Unit,
+    navigateToMap: () -> Unit // Add this parameter
+) {
     composable(route = Screen.Home.route) {
         val viewModel: HomeViewModel = viewModel()
-        val data by viewModel.data
         HomeScreen(
             filtered = viewModel.filtered.value,
             name = viewModel.name.value,
@@ -119,7 +139,15 @@ fun NavGraphBuilder.homeRoute() {
             onInsertClicked = viewModel::insertPerson,
             onUpdateClicked = viewModel::updatePerson,
             onDeleteClicked = viewModel::deletePerson,
-            onFilterClicked = viewModel::filterData
+            onFilterClicked = viewModel::filterData,
+            onLogoutClicked = {
+                viewModel.logout(onSuccess = {
+                    navigateToAuth()
+                }, onError = {
+                    // Handle error if needed
+                })
+            },
+            onMapClicked = navigateToMap // Pass the parameter
         )
     }
 }

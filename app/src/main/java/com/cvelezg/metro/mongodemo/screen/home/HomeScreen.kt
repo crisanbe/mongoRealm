@@ -1,3 +1,4 @@
+// HomeScreen.kt
 package com.cvelezg.metro.mongodemo.screen.home
 
 import android.annotation.SuppressLint
@@ -6,22 +7,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cvelezg.metro.mongodemo.model.Person
-import com.cvelezg.metro.mongodemo.data.MongoDB
-import io.realm.kotlin.types.RealmInstant
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.util.*
+import com.cvelezg.metro.mongodemo.util.componets.PersonCard
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -34,9 +28,12 @@ fun HomeScreen(
     onInsertClicked: () -> Unit,
     onUpdateClicked: () -> Unit,
     onDeleteClicked: () -> Unit,
-    onFilterClicked: () -> Unit
+    onFilterClicked: () -> Unit,
+    onLogoutClicked: () -> Unit,
+    onMapClicked: () -> Unit // Add this parameter
 ) {
-    val data by MongoDB.getData().collectAsState(initial = emptyList())
+    val viewModel: HomeViewModel = viewModel()
+    val data by viewModel.data
 
     Scaffold(
         content = {
@@ -50,7 +47,9 @@ fun HomeScreen(
                 onInsertClicked = onInsertClicked,
                 onUpdateClicked = onUpdateClicked,
                 onDeleteClicked = onDeleteClicked,
-                onFilterClicked = onFilterClicked
+                onFilterClicked = onFilterClicked,
+                onLogoutClicked = onLogoutClicked,
+                onMapClicked = onMapClicked // Pass the parameter
             )
         }
     )
@@ -67,7 +66,9 @@ fun HomeContent(
     onInsertClicked: () -> Unit,
     onUpdateClicked: () -> Unit,
     onDeleteClicked: () -> Unit,
-    onFilterClicked: () -> Unit
+    onFilterClicked: () -> Unit,
+    onLogoutClicked: () -> Unit,
+    onMapClicked: () -> Unit // Add this parameter
 ) {
     Column(
         modifier = Modifier
@@ -114,6 +115,14 @@ fun HomeContent(
                 Button(onClick = onFilterClicked) {
                     Text(text = if (filtered) "Clear" else "Filter")
                 }
+                Spacer(modifier = Modifier.width(6.dp))
+                Button(onClick = onLogoutClicked) {
+                    Text(text = "Logout")
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Button(onClick = onMapClicked) { // Add this button
+                    Text(text = "Map")
+                }
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
@@ -130,57 +139,5 @@ fun HomeContent(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun PersonCard(id: String, name: String, timestamp: RealmInstant) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(modifier = Modifier.padding(16.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = name,
-                    style = TextStyle(
-                        fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                SelectionContainer {
-                    Text(
-                        text = id,
-                        style = TextStyle(
-                            fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                            fontWeight = FontWeight.Normal
-                        )
-                    )
-                }
-            }
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    text = SimpleDateFormat("hh:mm a", Locale.getDefault())
-                        .format(Date.from(timestamp.toInstant())).uppercase(),
-                    style = TextStyle(
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        fontWeight = FontWeight.Normal
-                    )
-                )
-            }
-        }
-    }
-}
-
-fun RealmInstant.toInstant(): Instant {
-    val sec: Long = this.epochSeconds
-    val nano: Int = this.nanosecondsOfSecond
-    return if (sec >= 0) {
-        Instant.ofEpochSecond(sec, nano.toLong())
-    } else {
-        Instant.ofEpochSecond(sec - 1, 1_000_000 + nano.toLong())
     }
 }
