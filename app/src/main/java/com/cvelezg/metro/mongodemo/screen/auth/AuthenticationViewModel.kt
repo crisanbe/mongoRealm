@@ -8,6 +8,7 @@ import io.realm.kotlin.mongodb.App
 import io.realm.kotlin.mongodb.Credentials
 import io.realm.kotlin.mongodb.GoogleAuthType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -65,6 +66,7 @@ class AuthenticationViewModel : ViewModel() {
                 withContext(Dispatchers.Main) {
                     if (result) {
                         onSuccess()
+                        delay(600)
                         authenticated.value = true
                     } else {
                         onError(Exception("User is not logged in."))

@@ -3,7 +3,6 @@ package com.cvelezg.metro.mongodemo.navigation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -39,7 +38,7 @@ fun SetupNavGraph(
                 }
             },
             navigateToMap = {
-                navController.navigate(Screen.Map.route) // Add this navigation
+                navController.navigate(Screen.Map.route)
             }
         )
         mapRoute()
@@ -48,7 +47,7 @@ fun SetupNavGraph(
 
 fun NavGraphBuilder.mapRoute() {
     composable(route = Screen.Map.route) {
-        MapScreen(context = LocalContext.current)
+        MapScreen()
     }
 }
 
@@ -126,20 +125,17 @@ fun NavGraphBuilder.authRoute(
 
 fun NavGraphBuilder.homeRoute(
     navigateToAuth: () -> Unit,
-    navigateToMap: () -> Unit // Add this parameter
+    navigateToMap: () -> Unit
 ) {
     composable(route = Screen.Home.route) {
         val viewModel: HomeViewModel = viewModel()
         HomeScreen(
-            filtered = viewModel.filtered.value,
             name = viewModel.name.value,
             objectId = viewModel.objectId.value,
-            onNameChanged = viewModel::updateName,
-            onObjectIdChanged = viewModel::updateObjectId,
-            onInsertClicked = viewModel::insertPerson,
-            onUpdateClicked = viewModel::updatePerson,
-            onDeleteClicked = viewModel::deletePerson,
-            onFilterClicked = viewModel::filterData,
+            onNameChanged = { id, newName ->
+                viewModel.updateObjectId(id)
+                viewModel.updateName(newName)
+            },
             onLogoutClicked = {
                 viewModel.logout(onSuccess = {
                     navigateToAuth()
@@ -147,7 +143,18 @@ fun NavGraphBuilder.homeRoute(
                     // Handle error if needed
                 })
             },
-            onMapClicked = navigateToMap // Pass the parameter
+            onMapClicked = navigateToMap,
+            onClearFields = viewModel::clearFields,
+            onInsertClicked = {
+                viewModel.insertPerson(
+                    onSuccess = {
+                        viewModel.clearFields()
+                    },
+                    onError = {
+                        // Handle error if needed
+                    }
+                )
+            },
         )
     }
 }

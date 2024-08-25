@@ -9,6 +9,7 @@ import com.cvelezg.metro.mongodemo.model.Person
 import com.cvelezg.metro.mongodemo.util.Constants.APP_ID
 import io.realm.kotlin.mongodb.App
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.mongodb.kbson.ObjectId
@@ -18,6 +19,12 @@ class HomeViewModel : ViewModel() {
     var objectId = mutableStateOf("")
     var filtered = mutableStateOf(false)
     var data = mutableStateOf(emptyList<Person>())
+
+    // Estado de carga
+    var isLoading = mutableStateOf(false)
+
+    // Tiempo de retraso en milisegundos
+    private val loadingDelay = 500L // 500 ms
 
     init {
         viewModelScope.launch {
@@ -35,31 +42,78 @@ class HomeViewModel : ViewModel() {
         this.objectId.value = id
     }
 
-    fun insertPerson() {
+    fun insertPerson(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            if (name.value.isNotEmpty()) {
-                MongoDB.insertPerson(person = Person().apply {
-                    name = this@HomeViewModel.name.value
-                })
+            try {
+                if (name.value.isNotEmpty()) {
+                    MongoDB.insertPerson(person = Person().apply {
+                        name = this@HomeViewModel.name.value
+                    })
+                    withContext(Dispatchers.Main) {
+                        onSuccess()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onError(e)
+                }
             }
         }
     }
 
-    fun updatePerson() {
+    fun updatePerson(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            if (objectId.value.isNotEmpty()) {
-                MongoDB.updatePerson(person = Person().apply {
-                    _id = ObjectId(hexString = this@HomeViewModel.objectId.value)
-                    name = this@HomeViewModel.name.value
-                })
+            val loadingJob = launch {
+                isLoading.value = true
+            }
+
+            try {
+                if (objectId.value.isNotEmpty()) {
+                    MongoDB.updatePerson(person = Person().apply {
+                        _id = ObjectId(hexString = this@HomeViewModel.objectId.value)
+                        name = this@HomeViewModel.name.value
+                    })
+                    withContext(Dispatchers.Main) {
+                        onSuccess()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onError(e)
+                }
+            } finally {
+                // Completar el Job de carga, si no se ha completado aún
+                loadingJob.cancel()
+                withContext(Dispatchers.Main) {
+                    isLoading.value = false
+                }
             }
         }
     }
 
-    fun deletePerson() {
-        viewModelScope.launch {
-            if (objectId.value.isNotEmpty()) {
-                MongoDB.deletePerson(id = ObjectId(hexString = objectId.value))
+    fun deletePerson(id: String, name: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val loadingJob = launch {
+                isLoading.value = true
+            }
+
+            try {
+                if (id.isNotEmpty()) {
+                    MongoDB.deletePerson(id = ObjectId(hexString = id))
+                    withContext(Dispatchers.Main) {
+                        onSuccess()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onError(e)
+                }
+            } finally {
+                // Completar el Job de carga, si no se ha completado aún
+                loadingJob.cancel()
+                withContext(Dispatchers.Main) {
+                    isLoading.value = false
+                }
             }
         }
     }
@@ -95,5 +149,11 @@ class HomeViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    // Function to clear fields
+    fun clearFields() {
+        name.value = ""
+        objectId.value = ""
     }
 }

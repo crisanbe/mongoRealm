@@ -33,12 +33,23 @@ object MongoDB : MongoRepository {
             )
                 .initialSubscriptions { sub ->
                     add(query = sub.query<Person>(query = "owner_id == $0", user.id))
-                    add(query = sub.query<LocationData>(query = "owner_id == $0", user.id)) // Add LocationData to subscriptions
+                    add(query = sub.query<LocationData>(query = "owner_id == $0", user.id))
                 }
                 .log(LogLevel.ALL)
+                .schemaVersion(1) // Actualiza esta versión según sea necesario
                 .build()
             realm = Realm.open(config)
         }
+    }
+
+
+    fun deleteRealmDatabase() {
+        val config = SyncConfiguration.Builder(
+            user!!,
+            setOf(Person::class, Address::class, Pet::class, LocationData::class)
+        )
+            .build()
+        Realm.deleteRealm(config)
     }
 
     override fun getData(): Flow<List<Person>> {
