@@ -79,33 +79,4 @@ class AuthenticationViewModel : ViewModel() {
             }
         }
     }
-
-    fun confirmUser(
-        username: String,
-        token: String,
-        tokenId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) {
-        viewModelScope.launch {
-            try {
-                val result = withContext(Dispatchers.IO) {
-                    // Call the SDK's Confirm User function here
-                    // This is a placeholder for the actual implementation
-                    true
-                }
-                withContext(Dispatchers.Main) {
-                    if (result) {
-                        onSuccess()
-                    } else {
-                        onError(Exception("User confirmation failed."))
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    onError(e)
-                }
-            }
-        }
-    }
 }

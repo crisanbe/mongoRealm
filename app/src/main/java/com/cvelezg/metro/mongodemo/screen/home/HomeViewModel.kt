@@ -1,4 +1,3 @@
-// HomeViewModel.kt
 package com.cvelezg.metro.mongodemo.screen.home
 
 import androidx.compose.runtime.mutableStateOf
@@ -6,10 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cvelezg.metro.mongodemo.data.MongoDB
 import com.cvelezg.metro.mongodemo.model.Person
+import com.cvelezg.metro.mongodemo.model.Address
+import com.cvelezg.metro.mongodemo.model.Pet
 import com.cvelezg.metro.mongodemo.util.Constants.APP_ID
+import io.realm.kotlin.Realm
+import io.realm.kotlin.RealmConfiguration
 import io.realm.kotlin.mongodb.App
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.mongodb.kbson.ObjectId
@@ -19,17 +22,22 @@ class HomeViewModel : ViewModel() {
     var objectId = mutableStateOf("")
     var filtered = mutableStateOf(false)
     var data = mutableStateOf(emptyList<Person>())
-
-    // Estado de carga
     var isLoading = mutableStateOf(false)
-
-    // Tiempo de retraso en milisegundos
-    private val loadingDelay = 500L // 500 ms
+    private val realm: Realm
 
     init {
+        val config = RealmConfiguration.Builder(schema = setOf(Person::class, Address::class, Pet::class))
+            .name("person.realm")
+            .build()
+        realm = Realm.open(config)
+
         viewModelScope.launch {
-            MongoDB.getData().collect {
-                data.value = it
+            MongoDB.realmInitialized.collect { initialized ->
+                if (initialized) {
+                    MongoDB.getData().collect { data ->
+                        this@HomeViewModel.data.value = data
+                    }
+                }
             }
         }
     }
@@ -82,7 +90,6 @@ class HomeViewModel : ViewModel() {
                     onError(e)
                 }
             } finally {
-                // Completar el Job de carga, si no se ha completado aún
                 loadingJob.cancel()
                 withContext(Dispatchers.Main) {
                     isLoading.value = false
@@ -109,7 +116,6 @@ class HomeViewModel : ViewModel() {
                     onError(e)
                 }
             } finally {
-                // Completar el Job de carga, si no se ha completado aún
                 loadingJob.cancel()
                 withContext(Dispatchers.Main) {
                     isLoading.value = false
@@ -140,6 +146,7 @@ class HomeViewModel : ViewModel() {
             try {
                 val user = App.create(APP_ID).currentUser
                 user?.logOut()
+                MongoDB.clearLocalRealm()
                 withContext(Dispatchers.Main) {
                     onSuccess()
                 }
@@ -151,9 +158,13 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    // Function to clear fields
     fun clearFields() {
         name.value = ""
         objectId.value = ""
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        realm.close()
     }
 }

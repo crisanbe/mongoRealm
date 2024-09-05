@@ -1,45 +1,40 @@
-// MainActivity.kt
 package com.cvelezg.metro.mongodemo
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.cvelezg.metro.mongodemo.model.LocationData
 import com.cvelezg.metro.mongodemo.navigation.Screen
 import com.cvelezg.metro.mongodemo.navigation.SetupNavGraph
-import com.cvelezg.metro.mongodemo.screen.location.LocationViewModel
 import com.cvelezg.metro.mongodemo.ui.theme.MongoDemoTheme
 import com.cvelezg.metro.mongodemo.util.Constants.APP_ID
-//import com.cvelezg.metro.mongodemo.util.MyMapboxNavigationObserver
-//import com.cvelezg.metro.mongodemo.util.androidauto.MainCarAppService
+import com.cvelezg.metro.mongodemo.util.calculateDistance
+import com.cvelezg.metro.mongodemo.screen.location.LocationViewModel
+import com.mapbox.common.MapboxOptions
 import com.mapbox.navigation.base.options.NavigationOptions
 import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
 import io.realm.kotlin.mongodb.App
 import io.realm.kotlin.types.RealmInstant
+import org.mongodb.kbson.ObjectId
 
 class MainActivity : ComponentActivity() {
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
     private lateinit var locationViewModel: LocationViewModel
-    private var lastSavedLocation: Location? = null
-    //private lateinit var mapboxObserver: MyMapboxNavigationObserver
+
+    private var lastSavedLocation: LocationData? = null
+    private val minDistance = 50.0 // Distancia mínima en metros para guardar una nueva ubicación
 
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -48,48 +43,23 @@ class MainActivity : ComponentActivity() {
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
             startLocationUpdates()
         } else {
-            Toast.makeText(this, "Location permissions are required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    init {
-        lifecycle.addObserver(object : DefaultLifecycleObserver {
-            override fun onResume(owner: LifecycleOwner) {
-                MapboxNavigationApp.attach(owner)
-            }
-
-            override fun onPause(owner: LifecycleOwner) {
-                MapboxNavigationApp.detach(owner)
-            }
-        })
     }
 
     @SuppressLint("MissingPermission", "UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Inicializa el observador con el contexto de la aplicación
-       // mapboxObserver = MyMapboxNavigationObserver(applicationContext)
+        MapboxOptions.accessToken = getString(R.string.mapbox_access_token)
 
         // Initialize LocationManager
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
 
         if (!MapboxNavigationApp.isSetup()) {
             MapboxNavigationApp.setup {
-                NavigationOptions.Builder(applicationContext)
-                    //.accessToken(getString(R.string.mapbox_access_token))
-                    .build()
+                NavigationOptions.Builder(this@MainActivity).build()
             }
         }
-        // Registra el observador
-        //MapboxNavigationApp.registerObserver(mapboxObserver)
-
-     /*   lifecycleScope.launchWhenStarted {
-            mapboxObserver.location.collect { location ->
-                location?.let {
-                    Log.d("LocationUpdate", "Lat: ${it.latitude}, Lon: ${it.longitude}")
-                }
-            }
-        }*/
 
         // Request location permissions
         locationPermissionRequest.launch(arrayOf(
@@ -97,20 +67,10 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.ACCESS_COARSE_LOCATION
         ))
 
-        // Inicia el servicio en primer plano
-       /* val serviceIntent = Intent(this, MainCarAppService::class.java)
-        ContextCompat.startForegroundService(this, serviceIntent)*/
         setContent {
-            val darkColors = remember { mutableStateOf(true) }
-
-            MongoDemoTheme(
-                darkTheme = darkColors.value,
-            ) {
+            MongoDemoTheme {
                 val navController = rememberNavController()
                 locationViewModel = viewModel()
-                var showDialog by remember { mutableStateOf(false) }
-                var latitude by remember { mutableStateOf(0.0) }
-                var longitude by remember { mutableStateOf(0.0) }
 
                 Scaffold(
                     content = {
@@ -121,44 +81,17 @@ class MainActivity : ComponentActivity() {
                     }
                 )
 
-                ObserveLocationUpdates(locationViewModel) { newLocationData ->
-                    latitude = newLocationData.latitude
-                    longitude = newLocationData.longitude
-                    showDialog = true
-                }
-
+                ObserveLocationUpdates(locationViewModel)
                 StartLocationUpdates()
-
-               /* if (showDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showDialog = false },
-                        confirmButton = {
-                            Button(onClick = { showDialog = false }) {
-                                Text("Close")
-                            }
-                        },
-                        text = {
-                            Text("Location updated:\nLatitude: $latitude\nLongitude: $longitude")
-                        },
-                        dismissButton = {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                modifier = Modifier.clickable { showDialog = false }
-                            )
-                        }
-                    )
-                }*/
             }
         }
     }
 
     @Composable
-    fun ObserveLocationUpdates(locationViewModel: LocationViewModel, onLocationUpdate: (LocationData) -> Unit) {
+    fun ObserveLocationUpdates(locationViewModel: LocationViewModel) {
         LaunchedEffect(Unit) {
             locationViewModel.observeLocationUpdates { locationData ->
                 updateMap(locationData)
-                onLocationUpdate(locationData)
             }
         }
     }
@@ -174,17 +107,29 @@ class MainActivity : ComponentActivity() {
     private fun startLocationUpdates() {
         locationListener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                if (lastSavedLocation == null || location.distanceTo(lastSavedLocation!!) >= 50) {
-                    lastSavedLocation = location
-                    val newLocationData = LocationData().apply {
-                        latitude = location.latitude
-                        longitude = location.longitude
-                        owner_id = App.create(APP_ID).currentUser?.id ?: ""
-                        timestamp = RealmInstant.now()
-                    }
+                val newLocationData = LocationData().apply {
+                    latitude = location.latitude
+                    longitude = location.longitude
+                    timestamp = RealmInstant.now()
+                    _id = ObjectId()
+                    owner_id = App.create(APP_ID).currentUser?.id ?: ""
+                }
 
+                if (lastSavedLocation == null) {
+                    // Guardar la ubicación inicial
+                    lastSavedLocation = newLocationData
                     locationViewModel.updateLocation(newLocationData)
-                    Toast.makeText(this@MainActivity, "Location updated: ${newLocationData.latitude}, ${newLocationData.longitude}", Toast.LENGTH_LONG).show()
+                } else {
+                    val distance = calculateDistance(
+                        lastSavedLocation!!.latitude, lastSavedLocation!!.longitude,
+                        newLocationData.latitude, newLocationData.longitude
+                    )
+
+                    if (distance >= minDistance) {
+                        // Guardar la nueva ubicación si la distancia es mayor o igual al mínimo
+                        lastSavedLocation = newLocationData
+                        locationViewModel.updateLocation(newLocationData)
+                    }
                 }
             }
 
@@ -205,7 +150,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         locationManager.removeUpdates(locationListener)
-        //MapboxNavigationApp.unregisterObserver(mapboxObserver)
     }
 
     private fun getStartDestination(): String {

@@ -3,6 +3,7 @@ package com.cvelezg.metro.mongodemo.navigation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -47,7 +48,7 @@ fun SetupNavGraph(
 
 fun NavGraphBuilder.mapRoute() {
     composable(route = Screen.Map.route) {
-        MapScreen()
+        MapScreen(context = LocalContext.current)
     }
 }
 
