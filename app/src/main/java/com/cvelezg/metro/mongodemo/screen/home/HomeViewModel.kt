@@ -81,13 +81,13 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    // Insertar múltiples personas (10,000 personas)
+    // Insertar múltiples personas (1,000 personas)
     fun insertTenThousandData(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 repeat(1_000) { index ->
                     val person = Person().apply {
-                        name = "Person $index"
+                        name = "Tramo $index"
                     }
                     MongoDB.insertPerson(person)
                 }

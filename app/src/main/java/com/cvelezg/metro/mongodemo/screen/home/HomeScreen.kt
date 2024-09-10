@@ -82,7 +82,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
-                    title = { Text("Manage People🚊") },
+                    title = { Text("TransDemo🚊") },
                     actions = {
                         IconButton(onClick = onLogoutClicked) {
                             Icon(Icons.Filled.ExitToApp, contentDescription = "Logout")
@@ -161,7 +161,7 @@ fun HomeScreen(
             ) {
                 // Mostrar el total de datos
                 Text(
-                    text = "Total de datos: ${data.size}",
+                    text = "Total de Tramos: ${data.size}",
                     style = TextStyle(
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                         fontWeight = FontWeight.Bold,
@@ -244,7 +244,7 @@ fun HomeContent(
                     modifier = Modifier.weight(1f),
                     value = name,
                     onValueChange = { onNameChanged(objectId, it) },
-                    label = { Text("Name") },
+                    label = { Text("Tramo") },
                     textStyle = TextStyle(
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                         fontWeight = FontWeight.Bold,

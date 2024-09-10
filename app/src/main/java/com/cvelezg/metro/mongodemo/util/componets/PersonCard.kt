@@ -20,9 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.cvelezg.metro.mongodemo.ui.theme.GreenPrimary
 import io.realm.kotlin.types.RealmInstant
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
+import kotlin.random.Random
 
 @Composable
 fun PersonCard(
@@ -35,9 +37,16 @@ fun PersonCard(
     onNameChanged: (String, String) -> Unit // Callback para actualizar nombre
 ) {
     var editedName by remember { mutableStateOf(name) }
+    val randomRate = remember { Random.nextDouble(1000.0, 50000.0) } // Genera una tarifa aleatoria entre 1000 y 50000
+
+    // Formato para pesos colombianos
+    val currencyFormatter = NumberFormat.getCurrencyInstance(Locale("es", "CO"))
+    val formattedRate = currencyFormatter.format(randomRate)
+
     LaunchedEffect(name) {
         editedName = name
     }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -59,15 +68,14 @@ fun PersonCard(
                     OutlinedTextField(
                         value = editedName,
                         onValueChange = { editedName = it },
-                        label = { Text("Name") },
+                        label = { Text("Tramo") },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
                             fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF558B2F) // Texto verde
                         ),
-                        colors = TextFieldDefaults.colors(
-                        )
+                        colors = TextFieldDefaults.colors()
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     SelectionContainer {
@@ -96,13 +104,22 @@ fun PersonCard(
                         ),
                         modifier = Modifier.padding(bottom = 8.dp) // Espacio debajo de la fecha
                     )
-                    Text(
+                    /*Text(
                         text = "Age: $age",
                         style = TextStyle(
                             fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Normal,
                             color = Color(0xFF9E9D24)
                         )
+                    )*/
+                    Text(
+                        text = "Tarifa: $formattedRate", // Mostrar tarifa aleatoria en formato de moneda
+                        style = TextStyle(
+                            fontSize = MaterialTheme.typography.titleMedium.fontSize, // Tamaño de fuente más grande
+                            fontWeight = FontWeight.Bold, // Negrita para destacar la tarifa
+                            color = Color(0xFF388E3C) // Verde oscuro para contraste
+                        ),
+                        modifier = Modifier.padding(vertical = 8.dp) // Espacio vertical alrededor del texto de tarifa
                     )
                     Row(
                         horizontalArrangement = Arrangement.End,
