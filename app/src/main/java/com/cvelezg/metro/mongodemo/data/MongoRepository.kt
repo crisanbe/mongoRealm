@@ -7,6 +7,7 @@ import org.mongodb.kbson.ObjectId
 
 interface MongoRepository {
     suspend fun configureTheRealm()
+    suspend fun refreshData()
     fun getData(): Flow<List<Person>>
     fun filterData(name: String): Flow<List<Person>>
     suspend fun insertPerson(person: Person)

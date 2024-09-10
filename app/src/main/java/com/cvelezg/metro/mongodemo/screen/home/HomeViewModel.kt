@@ -12,7 +12,6 @@ import io.realm.kotlin.Realm
 import io.realm.kotlin.RealmConfiguration
 import io.realm.kotlin.mongodb.App
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.mongodb.kbson.ObjectId
@@ -42,6 +41,18 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    // Refrescar datos desde MongoDB
+    fun refreshData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                MongoDB.refreshData()
+            } catch (e: Exception) {
+                e.printStackTrace()  // Manejo de error al refrescar datos
+            }
+        }
+    }
+
+    // Actualizar el nombre de la persona
     fun updateName(name: String) {
         this.name.value = name
     }
@@ -50,6 +61,7 @@ class HomeViewModel : ViewModel() {
         this.objectId.value = id
     }
 
+    // Insertar una persona en MongoDB
     fun insertPerson(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -69,12 +81,31 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    // Insertar múltiples personas (10,000 personas)
+    fun insertTenThousandData(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repeat(1_000) { index ->
+                    val person = Person().apply {
+                        name = "Person $index"
+                    }
+                    MongoDB.insertPerson(person)
+                }
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onError(e)
+                }
+            }
+        }
+    }
+
+    // Actualizar la persona en MongoDB
     fun updatePerson(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            val loadingJob = launch {
-                isLoading.value = true
-            }
-
+            isLoading.value = true
             try {
                 if (objectId.value.isNotEmpty()) {
                     MongoDB.updatePerson(person = Person().apply {
@@ -90,20 +121,15 @@ class HomeViewModel : ViewModel() {
                     onError(e)
                 }
             } finally {
-                loadingJob.cancel()
-                withContext(Dispatchers.Main) {
-                    isLoading.value = false
-                }
+                isLoading.value = false
             }
         }
     }
 
+    // Eliminar una persona
     fun deletePerson(id: String, name: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            val loadingJob = launch {
-                isLoading.value = true
-            }
-
+            isLoading.value = true
             try {
                 if (id.isNotEmpty()) {
                     MongoDB.deletePerson(id = ObjectId(hexString = id))
@@ -116,14 +142,29 @@ class HomeViewModel : ViewModel() {
                     onError(e)
                 }
             } finally {
-                loadingJob.cancel()
+                isLoading.value = false
+            }
+        }
+    }
+
+    // Eliminar todas las personas
+    fun deleteAllPersons(onError: (Exception) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                MongoDB.getData().collect { personList ->
+                    personList.forEach { person ->
+                        MongoDB.deletePerson(person._id)
+                    }
+                }
+            } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    isLoading.value = false
+                    onError(e)
                 }
             }
         }
     }
 
+    // Filtrar personas según el nombre
     fun filterData() {
         viewModelScope.launch(Dispatchers.IO) {
             if (filtered.value) {
@@ -141,6 +182,7 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    // Cerrar sesión y limpiar la base de datos local
     fun logout(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -158,11 +200,13 @@ class HomeViewModel : ViewModel() {
         }
     }
 
+    // Limpiar campos del formulario
     fun clearFields() {
         name.value = ""
         objectId.value = ""
     }
 
+    // Cerrar Realm cuando el ViewModel se destruye
     override fun onCleared() {
         super.onCleared()
         realm.close()

@@ -56,7 +56,8 @@ object MongoDB : MongoRepository {
                     add(query = sub.query<LocationData>("owner_id == $0", user!!.id))
                 }
                 .log(LogLevel.ALL)
-                .schemaVersion(1)
+                .schemaVersion(2)
+                .waitForInitialRemoteData() // Sincroniza los datos remotos antes de permitir acceso local
                 .build()
 
             try {
@@ -68,6 +69,12 @@ object MongoDB : MongoRepository {
             }
         } else {
             Log.e("MongoDB", "User is not authenticated.")
+        }
+    }
+
+    override suspend fun refreshData() {
+        if (user != null) {
+            realm.subscriptions.refresh()
         }
     }
 

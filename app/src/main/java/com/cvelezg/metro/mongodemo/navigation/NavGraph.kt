@@ -128,6 +128,7 @@ fun NavGraphBuilder.homeRoute(
     navigateToAuth: () -> Unit,
     navigateToMap: () -> Unit
 ) {
+
     composable(route = Screen.Home.route) {
         val viewModel: HomeViewModel = viewModel()
         HomeScreen(
@@ -156,6 +157,24 @@ fun NavGraphBuilder.homeRoute(
                     }
                 )
             },
+            onInsert100Clicked = {
+                viewModel.insertTenThousandData(
+                    onSuccess = {
+                        viewModel.clearFields()
+                    },
+                    onError = {
+            })
+            },
+            onDelete100Clicked = {
+                viewModel.deleteAllPersons(
+                   onError = {
+
+                   }
+                )
+            },
+            onRefresh = {
+              viewModel.refreshData()
+            }
         )
     }
 }

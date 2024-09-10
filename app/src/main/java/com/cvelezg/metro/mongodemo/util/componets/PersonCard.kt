@@ -66,10 +66,7 @@ fun PersonCard(
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF558B2F) // Texto verde
                         ),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = GreenPrimary, // Borde verde al enfocar
-                            unfocusedBorderColor = Color.Gray, // Borde gris al no enfocar
-                            cursorColor = GreenPrimary // Cursor verde
+                        colors = TextFieldDefaults.colors(
                         )
                     )
                     Spacer(modifier = Modifier.height(4.dp))

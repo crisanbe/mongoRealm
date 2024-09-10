@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.stevdza.san.mongodemo", appContext.packageName)
+        assertEquals("com.cvelezg.metro.mongodemo", appContext.packageName)
     }
 }
